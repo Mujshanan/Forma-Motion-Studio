@@ -67,6 +67,51 @@ export default function App() {
     setSaved(false);
   },[artwork]);
 
+  // Keep a recoverable browser copy after artwork/frame changes.
+  useEffect(() => {
+    try {
+      localStorage.setItem(PROJECT_STORAGE_KEY, JSON.stringify(createProject(artwork, frame)));
+      setSaved(true);
+    } catch {
+      setSaved(false);
+    }
+  }, [artwork, frame]);
+
+  const saveProjectFile = useCallback(() => {
+    try {
+      const project = createProject(artwork, frame);
+      const blob = new Blob([JSON.stringify(project, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = "forma-motion-project.fms.json";
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+      setSaved(true);
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : "Could not save the project.");
+    }
+  }, [artwork, frame]);
+
+  const openProjectFile = useCallback(async (file?: File) => {
+    if (!file) return;
+    try {
+      const project = parseProject(await file.text());
+      setArtwork(clone(project.artwork));
+      setFrame(project.frame);
+      setSelectedId(null);
+      setUndoStack([]);
+      setRedoStack([]);
+      setSaved(true);
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : "Could not open the project.");
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }, []);
+
   const setMode = (mode: Workspace) => {
     setWorkspace(mode);
     setTool(mode === "Build" ? "bone" : mode === "Draw" ? "draw" : "select");
