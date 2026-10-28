@@ -27,3 +27,21 @@ export function createShapePoints(tool: ShapeTool, start: VectorPoint, end: Vect
     return { x: cx + rx * Math.cos(angle), y: cy + ry * Math.sin(angle) };
   });
 }
+
+export type SvgExportPath = { points: VectorPoint[]; stroke: string; strokeWidth: number };
+
+const escapeXml = (value: string) => value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+/** Serialize editable point paths as a standalone SVG document. */
+export function exportSvg(paths: SvgExportPath[], width = 1920, height = 1080): string {
+  const safeWidth = Number.isFinite(width) && width > 0 ? width : 1920;
+  const safeHeight = Number.isFinite(height) && height > 0 ? height : 1080;
+  const shapes = paths.map(path => {
+    const points = path.points.filter(p => Number.isFinite(p.x) && Number.isFinite(p.y))
+      .map(p => `${p.x},${p.y}`).join(" ");
+    const stroke = escapeXml(path.stroke);
+    const strokeWidth = Number.isFinite(path.strokeWidth) && path.strokeWidth > 0 ? path.strokeWidth : 1;
+    return `  <polyline points="${points}" fill="none" stroke="${stroke}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round" />`;
+  }).join("\\n");
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${safeWidth}" height="${safeHeight}" viewBox="0 0 ${safeWidth} ${safeHeight}">\\n${shapes}\\n</svg>\\n`;
+}
