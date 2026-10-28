@@ -23,7 +23,8 @@ const toolGroups: { label: string; items: { id: Tool; name: string; key: string;
   { label: "EDIT", items: [
     { id: "select", name: "Select", key: "V", glyph: "↖" },
     { id: "move", name: "Move", key: "M", glyph: "✥" },
-    { id: "rotate", name: "Rotate", key: "R", glyph: "⟳" },\n    { id: "points", name: "Edit points", key: "P", glyph: "✣" }
+    { id: "rotate", name: "Rotate", key: "R", glyph: "⟳" },
+    { id: "points", name: "Edit points", key: "P", glyph: "✣" }
   ]},
   { label: "CREATE", items: [
     { id: "draw", name: "Draw", key: "B", glyph: "✎" },
@@ -53,7 +54,8 @@ export default function App() {
   const [undoStack, setUndoStack] = useState<Snapshot[]>([]);
   const [redoStack, setRedoStack] = useState<Snapshot[]>([]);
   const [draftPoints, setDraftPoints] = useState<Point[]>([]);
-  const [drag, setDrag] = useState<{id:string; start:Point; origin:TranslationPose} | null>(null);\n  const [pointDrag, setPointDrag] = useState<{id:string; index:number} | null>(null);
+  const [drag, setDrag] = useState<{id:string; start:Point; origin:TranslationPose} | null>(null);
+  const [pointDrag, setPointDrag] = useState<{id:string; index:number} | null>(null);
   const [timelineZoom, setTimelineZoom] = useState(1);
   const svgRef = useRef<SVGSVGElement>(null);
   const playRef = useRef<number | null>(null);
@@ -82,7 +84,15 @@ export default function App() {
   const onPointerDown = (event: ReactPointerEvent<SVGSVGElement>) => {
     if (tool==="hand") return;
     const target=event.target as Element;
-    const pointNode=target.closest("[data-point-index]");\n    const pointIndex=pointNode?.getAttribute("data-point-index");\n    const pointPath=target.closest("[data-mark-id]")?.getAttribute("data-mark-id");\n    if (tool==="points" && pointIndex!==null && pointIndex!==undefined && pointPath) {\n      event.preventDefault(); event.stopPropagation();\n      setUndoStack(stack=>[...stack.slice(-39),clone(artwork)]); setRedoStack([]);\n      setSelectedId(pointPath); setPointDrag({id:pointPath,index:Number(pointIndex)}); event.currentTarget.setPointerCapture(event.pointerId); return;\n    }\n    const markNode=target.closest("[data-mark-id]");
+    const pointNode=target.closest("[data-point-index]");
+    const pointIndex=pointNode?.getAttribute("data-point-index");
+    const pointPath=target.closest("[data-mark-id]")?.getAttribute("data-mark-id");
+    if (tool==="points" && pointIndex!==null && pointIndex!==undefined && pointPath) {
+      event.preventDefault(); event.stopPropagation();
+      setUndoStack(stack=>[...stack.slice(-39),clone(artwork)]); setRedoStack([]);
+      setSelectedId(pointPath); setPointDrag({id:pointPath,index:Number(pointIndex)}); event.currentTarget.setPointerCapture(event.pointerId); return;
+    }
+    const markNode=target.closest("[data-mark-id]");
     const markId=markNode?.getAttribute("data-mark-id");
     const point=pointFromEvent(event);
     if (tool==="draw") {
@@ -101,6 +111,10 @@ export default function App() {
       const last=draftPoints[draftPoints.length-1];
       if(Math.hypot(point.x-last.x,point.y-last.y)>3) setDraftPoints(prev=>[...prev,point]);
     }
+    if(pointDrag){
+      setArtwork(items=>items.map(item=>item.id!==pointDrag.id?item:{...item,points:item.points.map((p,i)=>i===pointDrag.index?point:p)}));
+      setSaved(false);
+    }
     if(drag){
       const dx=point.x-drag.start.x,dy=point.y-drag.start.y;
       setArtwork(items=>items.map(item=>item.id!==drag.id?item:{...item,keyframes:{...item.keyframes,[frame]:{x:drag.origin.x+dx,y:drag.origin.y+dy}}}));
@@ -113,7 +127,7 @@ export default function App() {
       const item:ArtworkPath={id:crypto.randomUUID(),name:`Stroke ${artwork.length+1}`,points,stroke:"#a9f16c",strokeWidth:8,keyframes:{1:{x:0,y:0}}};
       pushArtwork([...artwork,item]); setSelectedId(item.id); setDraftPoints([]);
     }
-    setDrag(null);
+    setDrag(null); setPointDrag(null);
   };
   const undo = () => { if(!undoStack.length)return; setRedoStack(s=>[...s,clone(artwork)]); setArtwork(undoStack[undoStack.length-1]); setUndoStack(s=>s.slice(0,-1));setSaved(false); };
   const redo = () => { if(!redoStack.length)return; setUndoStack(s=>[...s,clone(artwork)]);setArtwork(redoStack[redoStack.length-1]);setRedoStack(s=>s.slice(0,-1));setSaved(false); };
@@ -145,7 +159,8 @@ export default function App() {
   useEffect(()=>{if(frame>DURATION)setFrame(DURATION);},[frame]);
   const currentPose=selected?evaluateTranslation(selected.keyframes,frame):{x:0,y:0};
 
-  return <main className="studio-shell" tabIndex={0} onKeyDown={onKeyDown}>\n    <input ref={fileInputRef} type="file" accept=".json,.fms.json,application/json" hidden onChange={event => void openProjectFile(event.target.files?.[0])} />
+  return <main className="studio-shell" tabIndex={0} onKeyDown={onKeyDown}>
+    <input ref={fileInputRef} type="file" accept=".json,.fms.json,application/json" hidden onChange={event => void openProjectFile(event.target.files?.[0])} />
     <header className="studio-topbar">
       <div className="topbar-left">
         <button className="studio-brand" title="Forma Motion Studio menu"><span className="brand-glyph">F</span><span>Forma Motion Studio</span><span className="chevron">⌄</span></button>
