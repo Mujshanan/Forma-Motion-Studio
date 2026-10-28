@@ -95,7 +95,7 @@ export default function App() {
     if ((tool==="select" || tool==="move") && markId) {
       event.stopPropagation(); setSelectedId(markId);
       const item=artwork.find(p=>p.id===markId);
-      if(item){ const origin=poseAt(item,frame); setDrag({id:markId,start:point,origin}); event.currentTarget.setPointerCapture(event.pointerId); }
+      if(item){ const origin=poseAt(item,frame); setUndoStack(stack=>[...stack.slice(-39),clone(artwork)]); setRedoStack([]); setDrag({id:markId,start:point,origin}); event.currentTarget.setPointerCapture(event.pointerId); }
     } else if (tool==="select") setSelectedId(null);
   };
   const onPointerMove = (event: ReactPointerEvent<SVGSVGElement>) => {
@@ -113,7 +113,7 @@ export default function App() {
   const onPointerUp = () => {
     if(draftPoints.length){
       const points=draftPoints.length>1?draftPoints:[{x:draftPoints[0].x-1,y:draftPoints[0].y-1},{x:draftPoints[0].x+1,y:draftPoints[0].y+1}];
-      const item:ArtworkPath={id:crypto.randomUUID(),name:`Stroke ${artwork.length+1}`,points,stroke:"#a9f16c",strokeWidth:8,keyframes:{[frame]:{x:0,y:0}}};
+      const item:ArtworkPath={id:crypto.randomUUID(),name:`Stroke ${artwork.length+1}`,points,stroke:"#a9f16c",strokeWidth:8,keyframes:{1:{x:0,y:0}}};
       pushArtwork([...artwork,item]); setSelectedId(item.id); setDraftPoints([]);
     }
     setDrag(null);
@@ -209,7 +209,7 @@ export default function App() {
         <section className="timeline">
           <div className="timeline-top"><div className="timeline-title"><span className="panel-overline">ANIMATION</span><strong>Timeline</strong><span className="timeline-subtitle">Scene 01</span></div><div className="transport"><button title="Go to first frame" onClick={() => setFrame(1)}>|◀</button><button title="Previous frame" onClick={() => setFrame(Math.max(1, frame - 1))}>◀</button><button className="transport-play" title={playing ? "Pause" : "Play"} onClick={() => setPlaying(!playing)}>{playing ? "Ⅱ" : "▶"}</button><button title="Next frame" onClick={() => setFrame(Math.min(DURATION,frame + 1))}>▶</button><button title="Last frame" onClick={() => setFrame(DURATION)}>▶|</button><span className="frame-counter">FRAME <b>{String(frame).padStart(3,"0")}</b></span></div><button className="timeline-add" onClick={toggleKeyframe} disabled={!selected}>◇ Keyframe</button></div>
           <div className="timeline-ruler"><div className="ruler-track-label">TRACKS</div><div className="ruler-numbers" style={{gridTemplateColumns:`repeat(${Math.ceil(DURATION/6)},minmax(0,1fr))`}}>{Array.from({length:Math.ceil(DURATION/6)},(_,i)=><button key={i} onClick={()=>setFrame(Math.min(DURATION,i*6+1))}>{i*6+1}</button>)}</div></div>
-          <div className="timeline-lane"><div className="lane-name"><button title="Toggle visibility">◉</button><span className="layer-swatch" />{selected?.name??selectedLayer}</div><div className="lane-cells" style={{gridTemplateColumns:`repeat(${DURATION},minmax(0,1fr))`}}>{Array.from({length:DURATION},(_,i)=>{const f=i+1;const key=selected?.keyframes[f];return <button key={f} className={f===frame?"frame-cell current":key?"frame-cell keyframe":"frame-cell"} onClick={()=>setFrame(f)} title={`Frame ${f}`} />;})}</div></div>
+          <div className="timeline-lane"><div className="lane-name"><button title="Toggle visibility">◉</button><span className="layer-swatch" />{selected?.name??selectedLayer}</div><div className="lane-cells" style={{gridTemplateColumns:`repeat(${DURATION},minmax(0,1fr))`,minWidth:`${timelineZoom*100}%`}}>{Array.from({length:DURATION},(_,i)=>{const f=i+1;const key=selected?.keyframes[f];return <button key={f} className={f===frame?"frame-cell current":key?"frame-cell keyframe":"frame-cell"} onClick={()=>setFrame(f)} title={`Frame ${f}`} />;})}</div></div>
           <div className="timeline-footer"><span>{FPS} FPS</span><span>{((frame-1)/FPS).toFixed(2)} s</span><span>{artwork.length} vector path(s)</span><button onClick={()=>setTimelineZoom(z=>Math.min(4,z*1.25))}>＋</button><button onClick={()=>setTimelineZoom(z=>Math.max(.5,z/1.25))}>−</button><button onClick={() => setFrame(1)}>Go to start ↑</button></div>
         </section>
       </section>
