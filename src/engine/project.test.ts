@@ -36,3 +36,32 @@ describe("Forma project files", () => {
     sample[0].points[0].x = 12;
   });
 });
+
+describe("Bézier project compatibility", () => {
+  it("round-trips cubic commands without flattening them", () => {
+    const withCurve = [{
+      ...sample[0],
+      pathCommands: [
+        { type: "M" as const, x: 12, y: 24 },
+        { type: "C" as const, x1: 15, y1: 24, x2: 27, y2: 40, x: 30, y: 40 }
+      ]
+    }];
+    const saved = createProject(withCurve, 12);
+    const loaded = parseProject(JSON.stringify(saved));
+    expect(loaded.artwork[0].pathCommands).toEqual(withCurve[0].pathCommands);
+  });
+
+  it("continues to load legacy v1 artwork without Bézier commands", () => {
+    const loaded = parseProject(JSON.stringify(createProject(sample, 1)));
+    expect(loaded.artwork[0].pathCommands).toBeUndefined();
+    expect(loaded.artwork[0].points).toEqual(sample[0].points);
+  });
+
+  it("rejects malformed Bézier commands", () => {
+    const saved = createProject([{
+      ...sample[0],
+      pathCommands: [{ type: "C", x1: 1, y1: 2, x2: 3, y2: 4, x: 5, y: 6 }]
+    } as typeof sample[number] & {pathCommands: {type: "C"; x1: number; y1: number; x2: number; y2: number; x: number; y: number}[] }], 1);
+    expect(() => parseProject(JSON.stringify(saved))).toThrow("must start with a move command");
+  });
+});
