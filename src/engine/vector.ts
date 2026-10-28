@@ -3,7 +3,8 @@ export type ShapeTool = "rect" | "ellipse" | "line";
 
 /** SVG path commands retained as editable geometry instead of flattening curves to polylines. */
 export type BezierCommand =
-  | { type: "M" | "L"; x: number; y: number }
+  | { type: "M"; x: number; y: number }
+  | { type: "L"; x: number; y: number }
   | { type: "C"; x1: number; y1: number; x2: number; y2: number; x: number; y: number }
   | { type: "Z" };
 
