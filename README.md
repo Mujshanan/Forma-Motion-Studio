@@ -9,7 +9,9 @@ A new Windows-first, vector-first 2D character animation editor inspired by the 
 - Dark editor shell with Draw, Rig, Animate, Assets, and Export workspaces.
 - Central 16:9 artboard with a sample character illustration.
 - Tool rail with Select, Pen, Shape, Bone, and Hand tools.
-- Draw vector strokes, select and reposition them, and use Edit points (P) to reshape individual stroke points.\n- Auto-restores the latest working document in local browser storage; Open imports a project JSON file and Save downloads a portable project JSON file.\n- Project files validate their format, coordinates, and keyframe ranges before opening.
+- Draw vector strokes, select and reposition them, and use Edit points (P) to reshape individual stroke points.
+- Auto-restores the latest working document in local browser storage; Open imports a project JSON file and Save downloads a portable project JSON file.
+- Project files validate their format, coordinates, and keyframe ranges before opening.
 - Rig workspace displays a sample skeleton overlay and basic visibility control.
 - Layers, selection inspector, timeline scrubbing, frame stepping, playback, keyframe toggling, and timeline zoom controls.
 - Responsive panel sizing and keyboard shortcut labels.
