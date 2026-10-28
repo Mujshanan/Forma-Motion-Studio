@@ -3,14 +3,15 @@ import type { PointerEvent as ReactPointerEvent, KeyboardEvent as ReactKeyboardE
 import { evaluateTranslation } from "./engine/timeline";
 import type { TranslationPose } from "./engine/timeline";
 import { createProject, parseProject } from "./engine/project";
-import { createShapePoints, exportSvg } from "./engine/vector";
+import { bezierPathToSvgD, createShapePoints, createSmoothBezier, exportSvg } from "./engine/vector";
+import type { BezierCommand } from "./engine/vector";
 
 type Workspace = "Animate" | "Draw" | "Build";
 type Tool = "select" | "move" | "rotate" | "draw" | "rect" | "ellipse" | "line" | "bone" | "hand" | "points";
 type Point = { x: number; y: number };
 
 type ArtworkPath = {
-  id: string; name: string; points: Point[]; stroke: string; strokeWidth: number;
+  id: string; name: string; points: Point[]; pathCommands?: BezierCommand[]; stroke: string; strokeWidth: number;
   keyframes: Record<number, TranslationPose>;
 };
 type Snapshot = ArtworkPath[];
@@ -84,7 +85,7 @@ export default function App() {
   const exportSvgFile = useCallback(() => {
     const paths = artwork.map(item => {
       const pose = evaluateTranslation(item.keyframes, frame);
-      return { points: item.points.map(point => ({ x: point.x + pose.x, y: point.y + pose.y })), stroke: item.stroke, strokeWidth: item.strokeWidth };
+      return { points: item.points.map(point => ({ x: point.x + pose.x, y: point.y + pose.y })), commands: item.pathCommands?.map(command => command.type === "Z" ? command : command.type === "C" ? ({ ...command, x1: command.x1 + pose.x, y1: command.y1 + pose.y, x2: command.x2 + pose.x, y2: command.y2 + pose.y, x: command.x + pose.x, y: command.y + pose.y }) : ({ ...command, x: command.x + pose.x, y: command.y + pose.y })), stroke: item.stroke, strokeWidth: item.strokeWidth };
     });
     const blob = new Blob([exportSvg(paths)], { type: "image/svg+xml;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -179,7 +180,7 @@ export default function App() {
       }
     }
     if(pointDrag){
-      setArtwork(items=>items.map(item=>{ if(item.id!==pointDrag.id)return item; const pose=evaluateTranslation(item.keyframes,frame); const localPoint={x:point.x-pose.x,y:point.y-pose.y}; return {...item,points:item.points.map((p,i)=>i===pointDrag.index?localPoint:p)}; }));
+      setArtwork(items=>items.map(item=>{ if(item.id!==pointDrag.id)return item; const pose=evaluateTranslation(item.keyframes,frame); const localPoint={x:point.x-pose.x,y:point.y-pose.y}; const nextPoints=item.points.map((p,i)=>i===pointDrag.index?localPoint:p); return {...item,points:nextPoints,...(item.pathCommands?{pathCommands:createSmoothBezier(nextPoints)}:{})}; }));
       setSaved(false);
     }
     if(drag){
@@ -195,7 +196,7 @@ export default function App() {
         ? createShapePoints(tool, start, draftPoints[draftPoints.length - 1])
         : draftPoints.length > 1 ? draftPoints : [{x:start.x-1,y:start.y-1},{x:start.x+1,y:start.y+1}];
       const label = tool === "rect" ? "Rectangle" : tool === "ellipse" ? "Ellipse" : tool === "line" ? "Line" : "Stroke";
-      const item:ArtworkPath={id:crypto.randomUUID(),name:`${label} ${artwork.length+1}`,points,stroke:"#a9f16c",strokeWidth:8,keyframes:{1:{x:0,y:0}}};
+      const item:ArtworkPath={id:crypto.randomUUID(),name:`${label} ${artwork.length+1}`,points,...(tool==="draw"?{pathCommands:createSmoothBezier(points)}:{}),stroke:"#a9f16c",strokeWidth:8,keyframes:{1:{x:0,y:0}}};
       pushArtwork([...artwork,item]); setSelectedId(item.id); setDraftPoints([]);
     }
     setDrag(null); setPointDrag(null);
@@ -280,7 +281,7 @@ export default function App() {
                 <path d="M930 480 L960 515 L990 480" fill="#f0eef8" strokeWidth="7"/>
               </g>
               {showBones && workspace === "Build" && <g stroke="#a9f16c" strokeWidth="7" fill="#202229" strokeLinecap="round" pointerEvents="none"><path d="M960 470 L960 600 L960 770 L910 920 M960 770 L1010 920 M960 600 L850 640 M960 600 L1070 640" fill="none"/>{[[960,470],[960,600],[960,770],[910,920],[1010,920],[850,640],[1070,640]].map(([x,y],i)=><circle key={i} cx={x} cy={y} r="13" />)}</g>}
-              {artwork.map(item=>{const pose=evaluateTranslation(item.keyframes,frame),bounds=pathBounds(item.points);return <g key={item.id} data-mark-id={item.id} transform={`translate(${pose.x} ${pose.y})`} style={{cursor:tool==="select"||tool==="move"?"move":"inherit"}}><polyline points={item.points.map(p=>`${p.x},${p.y}`).join(" ")} fill="none" stroke={item.stroke} strokeWidth={item.strokeWidth} strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" /><polyline points={item.points.map(p=>`${p.x},${p.y}`).join(" ")} fill="none" stroke="transparent" strokeWidth="28" vectorEffect="non-scaling-stroke" />{selectedId===item.id&&<g pointerEvents="none"><rect x={bounds.x-12} y={bounds.y-12} width={bounds.width+24} height={bounds.height+24} fill="none" stroke="#a9f16c" strokeWidth="3" strokeDasharray="10 8"/><circle cx={bounds.x+bounds.width+12} cy={bounds.y+bounds.height+12} r="9" fill="#a9f16c" stroke="#1d1f26" strokeWidth="3"/></g>}{selectedId===item.id&&tool==="points"&&item.points.map((point,index)=><circle key={index} data-point-index={index} cx={point.x} cy={point.y} r="10" fill="#f0eef8" stroke="#a9f16c" strokeWidth="4" style={{cursor:"grab"}} pointerEvents="all" />)}</g>;})}
+              {artwork.map(item=>{const pose=evaluateTranslation(item.keyframes,frame),bounds=pathBounds(item.points);return <g key={item.id} data-mark-id={item.id} transform={`translate(${pose.x} ${pose.y})`} style={{cursor:tool==="select"||tool==="move"?"move":"inherit"}}>{item.pathCommands?<path d={bezierPathToSvgD(item.pathCommands)} fill="none" stroke={item.stroke} strokeWidth={item.strokeWidth} strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />:<polyline points={item.points.map(p=>`${p.x},${p.y}`).join(" ")} fill="none" stroke={item.stroke} strokeWidth={item.strokeWidth} strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />}{item.pathCommands?<path d={bezierPathToSvgD(item.pathCommands)} fill="none" stroke="transparent" strokeWidth="28" vectorEffect="non-scaling-stroke" />:<polyline points={item.points.map(p=>`${p.x},${p.y}`).join(" ")} fill="none" stroke="transparent" strokeWidth="28" vectorEffect="non-scaling-stroke" />}{selectedId===item.id&&<g pointerEvents="none"><rect x={bounds.x-12} y={bounds.y-12} width={bounds.width+24} height={bounds.height+24} fill="none" stroke="#a9f16c" strokeWidth="3" strokeDasharray="10 8"/><circle cx={bounds.x+bounds.width+12} cy={bounds.y+bounds.height+12} r="9" fill="#a9f16c" stroke="#1d1f26" strokeWidth="3"/></g>}{selectedId===item.id&&tool==="points"&&item.points.map((point,index)=><circle key={index} data-point-index={index} cx={point.x} cy={point.y} r="10" fill="#f0eef8" stroke="#a9f16c" strokeWidth="4" style={{cursor:"grab"}} pointerEvents="all" />)}</g>;})}
               {draftPoints.length>0&&<polyline points={draftPoints.map(p=>`${p.x},${p.y}`).join(" ")} fill="none" stroke="#a9f16c" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" pointerEvents="none" />}
             </svg>
             <div className="artboard-label">ARTBOARD 01 <span>1920 × 1080</span></div><div className="canvas-coordinates">{selected?selected.name:"X 960 · Y 540"}</div>
