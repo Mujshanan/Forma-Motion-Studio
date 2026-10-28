@@ -112,7 +112,7 @@ export default function App() {
       if(Math.hypot(point.x-last.x,point.y-last.y)>3) setDraftPoints(prev=>[...prev,point]);
     }
     if(pointDrag){
-      setArtwork(items=>items.map(item=>item.id!==pointDrag.id?item:{...item,points:item.points.map((p,i)=>i===pointDrag.index?point:p)}));
+      setArtwork(items=>items.map(item=>{ if(item.id!==pointDrag.id)return item; const pose=evaluateTranslation(item.keyframes,frame); const localPoint={x:point.x-pose.x,y:point.y-pose.y}; return {...item,points:item.points.map((p,i)=>i===pointDrag.index?localPoint:p)}; }));
       setSaved(false);
     }
     if(drag){
