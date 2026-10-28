@@ -3,7 +3,7 @@ import type { PointerEvent as ReactPointerEvent, KeyboardEvent as ReactKeyboardE
 import { evaluateTranslation } from "./engine/timeline";
 import type { TranslationPose } from "./engine/timeline";
 import { createProject, parseProject } from "./engine/project";
-import { createShapePoints } from "./engine/vector";
+import { createShapePoints, exportSvg } from "./engine/vector";
 
 type Workspace = "Animate" | "Draw" | "Build";
 type Tool = "select" | "move" | "rotate" | "draw" | "rect" | "ellipse" | "line" | "bone" | "hand" | "points";
@@ -81,7 +81,7 @@ export default function App() {
     }
   }, [artwork, frame]);
 
-  const saveProjectFile = useCallback(() => {
+  const exportSvgFile = useCallback(() => {\n    const paths = artwork.map(item => {\n      const pose = evaluateTranslation(item.keyframes, frame);\n      return { points: item.points.map(point => ({ x: point.x + pose.x, y: point.y + pose.y })), stroke: item.stroke, strokeWidth: item.strokeWidth };\n    });\n    const blob = new Blob([exportSvg(paths)], { type: "image/svg+xml;charset=utf-8" });\n    const url = URL.createObjectURL(blob);\n    const anchor = document.createElement("a");\n    anchor.href = url; anchor.download = "forma-motion-artwork.svg";\n    document.body.appendChild(anchor); anchor.click(); anchor.remove();\n    URL.revokeObjectURL(url);\n    setPanel("Properties");\n  }, [artwork, frame]);\n\n  const saveProjectFile = useCallback(() => {
     try {
       const project = createProject(artwork, frame);
       const blob = new Blob([JSON.stringify(project, null, 2)], { type: "application/json" });
@@ -288,7 +288,7 @@ export default function App() {
         {panel === "Layers" && <><div className="inspector-heading"><div><span className="panel-overline">SCENE CONTENTS</span><h2>Layers</h2></div><button className="small-icon-button" onClick={()=>setSelectedLayer("New Layer")}>＋</button></div><div className="layer-tree">{["Character",...artwork.map(item=>item.name),"Background"].map((name,i)=><button key={name} className={(selected?.name===name||selectedLayer===name)?"layer-tree-row selected":"layer-tree-row"} onClick={()=>{const item=artwork.find(p=>p.name===name);setSelectedId(item?.id??null);setSelectedLayer(name);setPanel("Properties");}}><span className="tree-caret">{i===0?"⌄":""}</span><span className={"tree-icon "+(name==="Background"?"background-icon":"")}>{name==="Background"?"▱":i===0?"♙":"◇"}</span><span>{name}</span><span className="tree-eye">◉</span></button>)}</div><div className="layer-actions"><button onClick={()=>setTool("draw")}>＋ Draw path</button><button onClick={deleteSelected}>⌫ Delete</button></div></>}
         {panel === "Rig" && <><div className="inspector-heading"><div><span className="panel-overline">CHARACTER SETUP</span><h2>Rig</h2></div><button className="small-icon-button" onClick={()=>setShowBones(!showBones)}>{showBones?"◉":"⊘"}</button></div><div className="rig-summary"><span className="rig-symbol">⌁</span><div><strong>Character skeleton</strong><span>7 joints · 6 links (prototype)</span></div></div><div className="property-section"><div className="property-heading">DISPLAY <span>⌄</span></div><label className="toggle-row"><span>Show bones</span><input type="checkbox" checked={showBones} onChange={e=>setShowBones(e.target.checked)} /></label></div><button className="wide-action" onClick={()=>setWorkspace("Build")}>Open Build workspace ↗</button></>}
         {panel === "Projects" && <div className="utility-panel"><span className="utility-icon">⌂</span><h2>Project home</h2><p>Project file persistence is not implemented yet.</p><button onClick={()=>setPanel("Properties")}>Return to editor</button></div>}
-        {panel === "Export" && <div className="utility-panel"><span className="utility-icon">⇧</span><h2>Export animation</h2><p>Rendering and file export are not implemented yet.</p><button onClick={()=>setPanel("Properties")}>Back to properties</button></div>}
+        {panel === "Export" && <div className="utility-panel"><span className="utility-icon">⇧</span><h2>Export artwork</h2><p>Export the current frame as a scalable SVG file. Animation rendering is not implemented yet.</p><button onClick={exportSvgFile} disabled={!artwork.length}>Export SVG</button><button onClick={saveProjectFile}>Save project JSON</button><button onClick={()=>setPanel("Properties")}>Back to properties</button></div>}
         <div className="inspector-bottom"><span><i className="status-light" /> {saved?"Saved (session only)":"Unsaved session"}</span><span>v0.1.0</span></div>
       </aside>
     </div>
