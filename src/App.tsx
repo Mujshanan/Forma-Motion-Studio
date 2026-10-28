@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent, KeyboardEvent as ReactKeyboardEvent } from "react";
 import { evaluateTranslation } from "./engine/timeline";
 import type { TranslationPose } from "./engine/timeline";
+import { createProject, parseProject } from "./engine/project";
 
 type Workspace = "Animate" | "Draw" | "Build";
 type Tool = "select" | "move" | "rotate" | "draw" | "bone" | "hand";
@@ -14,6 +15,9 @@ type ArtworkPath = {
 type Snapshot = ArtworkPath[];
 
 const FPS = 24;
+const PROJECT_STORAGE_KEY = "forma-motion-studio.project.v1";
+function readStoredProject() { try { const raw = localStorage.getItem(PROJECT_STORAGE_KEY); return raw ? parseProject(raw) : null; } catch { return null; } }
+const initialProject = readStoredProject();
 const DURATION = 120;
 const toolGroups: { label: string; items: { id: Tool; name: string; key: string; glyph: string }[] }[] = [
   { label: "EDIT", items: [
@@ -36,15 +40,16 @@ function pathBounds(points: Point[]) {
 export default function App() {
   const [workspace, setWorkspace] = useState<Workspace>("Animate");
   const [tool, setTool] = useState<Tool>("select");
-  const [frame, setFrame] = useState(1);
+  const [frame, setFrame] = useState(initialProject?.frame ?? 1);
   const [playing, setPlaying] = useState(false);
   const [zoom, setZoom] = useState(100);
   const [panel, setPanel] = useState("Properties");
   const [selectedLayer, setSelectedLayer] = useState("Character");
   const [showBones, setShowBones] = useState(true);
-  const [artwork, setArtwork] = useState<Snapshot>([]);
+  const [artwork, setArtwork] = useState<Snapshot>(initialProject?.artwork ?? []);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [saved, setSaved] = useState(false);
+  const [saved, setSaved] = useState(Boolean(initialProject));
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [undoStack, setUndoStack] = useState<Snapshot[]>([]);
   const [redoStack, setRedoStack] = useState<Snapshot[]>([]);
   const [draftPoints, setDraftPoints] = useState<Point[]>([]);
@@ -140,11 +145,11 @@ export default function App() {
   useEffect(()=>{if(frame>DURATION)setFrame(DURATION);},[frame]);
   const currentPose=selected?evaluateTranslation(selected.keyframes,frame):{x:0,y:0};
 
-  return <main className="studio-shell" tabIndex={0} onKeyDown={onKeyDown}>
+  return <main className="studio-shell" tabIndex={0} onKeyDown={onKeyDown}>\n    <input ref={fileInputRef} type="file" accept=".json,.fms.json,application/json" hidden onChange={event => void openProjectFile(event.target.files?.[0])} />
     <header className="studio-topbar">
       <div className="topbar-left">
         <button className="studio-brand" title="Forma Motion Studio menu"><span className="brand-glyph">F</span><span>Forma Motion Studio</span><span className="chevron">⌄</span></button>
-        <nav className="menu-items" aria-label="Application menu"><button onClick={()=>{setArtwork([]);setSelectedId(null);setFrame(1);setSaved(false);}}>File</button><button onClick={undo}>Edit</button><button onClick={()=>setZoom(100)}>View</button><button onClick={()=>setPlaying(p=>!p)}>Animation</button><button>Help</button></nav>
+        <nav className="menu-items" aria-label="Application menu"><button onClick={()=>fileInputRef.current?.click()}>Open</button><button onClick={undo}>Edit</button><button onClick={()=>setZoom(100)}>View</button><button onClick={()=>setPlaying(p=>!p)}>Animation</button><button>Help</button></nav>
         <button className="home-button" title="Project home" onClick={() => setPanel("Projects")}>⌂</button>
         <div className="project-tabs"><button className="project-tab active"><span className="file-dot" />Untitled Project <span className="unsaved-dot">{saved?"":"●"}</span></button><button className="new-project" title="Clear artwork" onClick={() => { if(confirm("Clear all drawn artwork?")){pushArtwork([]);setSelectedId(null);} }}>＋</button></div>
       </div>
@@ -153,7 +158,7 @@ export default function App() {
       </div>
       <div className="topbar-right">
         <button className="chrome-icon" title="Undo (Ctrl+Z)" onClick={undo} disabled={!undoStack.length}>↶</button><button className="chrome-icon" title="Redo (Ctrl+Y)" onClick={redo} disabled={!redoStack.length}>↷</button>
-        <span className="topbar-separator" /><button className="save-button" onClick={() => setSaved(true)}>{saved ? "✓ Saved" : "Save"}</button><button className="export-button" onClick={() => setPanel("Export")}>Export ↗</button>
+        <span className="topbar-separator" /><button className="save-button" onClick={saveProjectFile}>{saved ? "✓ Save" : "Save"}</button><button className="export-button" onClick={() => setPanel("Export")}>Export ↗</button>
       </div>
     </header>
 
