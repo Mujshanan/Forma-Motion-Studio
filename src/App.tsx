@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent, KeyboardEvent as ReactKeyboardEvent } from "react";
+import { evaluateTranslation } from "./engine/timeline";
+import type { TranslationPose } from "./engine/timeline";
 
 type Workspace = "Animate" | "Draw" | "Build";
 type Tool = "select" | "move" | "rotate" | "draw" | "bone" | "hand";
 type Point = { x: number; y: number };
-type Pose = { x: number; y: number };
+
 type ArtworkPath = {
   id: string; name: string; points: Point[]; stroke: string; strokeWidth: number;
-  keyframes: Record<number, Pose>;
+  keyframes: Record<number, TranslationPose>;
 };
 type Snapshot = ArtworkPath[];
 
@@ -26,16 +28,6 @@ const toolGroups: { label: string; items: { id: Tool; name: string; key: string;
   ]}
 ];
 const clone = (items: Snapshot): Snapshot => items.map(item => ({ ...item, points: item.points.map(p => ({...p})), keyframes: {...item.keyframes} }));
-function poseAt(path: ArtworkPath, frame: number): Pose {
-  const keys = Object.keys(path.keyframes).map(Number).sort((a,b)=>a-b);
-  if (!keys.length) return {x:0,y:0};
-  let before = keys[0], after = keys[keys.length-1];
-  for (const key of keys) { if (key <= frame) before = key; if (key >= frame) { after = key; break; } }
-  const a=path.keyframes[before], b=path.keyframes[after];
-  if (before===after) return {...a};
-  const t=(frame-before)/(after-before);
-  return {x:a.x+(b.x-a.x)*t,y:a.y+(b.y-a.y)*t};
-}
 function pathBounds(points: Point[]) {
   const xs=points.map(p=>p.x), ys=points.map(p=>p.y);
   return {x:Math.min(...xs),y:Math.min(...ys),width:Math.max(1,Math.max(...xs)-Math.min(...xs)),height:Math.max(1,Math.max(...ys)-Math.min(...ys))};
@@ -56,7 +48,7 @@ export default function App() {
   const [undoStack, setUndoStack] = useState<Snapshot[]>([]);
   const [redoStack, setRedoStack] = useState<Snapshot[]>([]);
   const [draftPoints, setDraftPoints] = useState<Point[]>([]);
-  const [drag, setDrag] = useState<{id:string; start:Point; origin:Pose} | null>(null);
+  const [drag, setDrag] = useState<{id:string; start:Point; origin:TranslationPose} | null>(null);
   const [timelineZoom, setTimelineZoom] = useState(1);
   const svgRef = useRef<SVGSVGElement>(null);
   const playRef = useRef<number | null>(null);
@@ -95,7 +87,7 @@ export default function App() {
     if ((tool==="select" || tool==="move") && markId) {
       event.stopPropagation(); setSelectedId(markId);
       const item=artwork.find(p=>p.id===markId);
-      if(item){ const origin=poseAt(item,frame); setUndoStack(stack=>[...stack.slice(-39),clone(artwork)]); setRedoStack([]); setDrag({id:markId,start:point,origin}); event.currentTarget.setPointerCapture(event.pointerId); }
+      if(item){ const origin=evaluateTranslation(item.keyframes,frame); setUndoStack(stack=>[...stack.slice(-39),clone(artwork)]); setRedoStack([]); setDrag({id:markId,start:point,origin}); event.currentTarget.setPointerCapture(event.pointerId); }
     } else if (tool==="select") setSelectedId(null);
   };
   const onPointerMove = (event: ReactPointerEvent<SVGSVGElement>) => {
@@ -146,7 +138,7 @@ export default function App() {
     return ()=>{if(playRef.current!==null)window.clearInterval(playRef.current);};
   },[playing]);
   useEffect(()=>{if(frame>DURATION)setFrame(DURATION);},[frame]);
-  const currentPose=selected?poseAt(selected,frame):{x:0,y:0};
+  const currentPose=selected?evaluateTranslation(selected.keyframes,frame):{x:0,y:0};
   const hasKeyframe=Boolean(selected?.keyframes[frame]);
 
   return <main className="studio-shell" tabIndex={0} onKeyDown={onKeyDown}>
