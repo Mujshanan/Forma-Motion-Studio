@@ -43,5 +43,5 @@ export function exportSvg(paths: SvgExportPath[], width = 1920, height = 1080): 
     const strokeWidth = Number.isFinite(path.strokeWidth) && path.strokeWidth > 0 ? path.strokeWidth : 1;
     return `  <polyline points="${points}" fill="none" stroke="${stroke}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round" />`;
   }).join("\n");
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${safeWidth}" height="${safeHeight}" viewBox="0 0 ${safeWidth} ${safeHeight}">\\n${shapes}\\n</svg>\\n`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${safeWidth}" height="${safeHeight}" viewBox="0 0 ${safeWidth} ${safeHeight}">\n${shapes}\n</svg>\n`;
 }
