@@ -3,9 +3,10 @@ import type { PointerEvent as ReactPointerEvent, KeyboardEvent as ReactKeyboardE
 import { evaluateTranslation } from "./engine/timeline";
 import type { TranslationPose } from "./engine/timeline";
 import { createProject, parseProject } from "./engine/project";
+import { createShapePoints } from "./engine/vector";
 
 type Workspace = "Animate" | "Draw" | "Build";
-type Tool = "select" | "move" | "rotate" | "draw" | "bone" | "hand" | "points";
+type Tool = "select" | "move" | "rotate" | "draw" | "rect" | "ellipse" | "line" | "bone" | "hand" | "points";
 type Point = { x: number; y: number };
 
 type ArtworkPath = {
@@ -27,7 +28,10 @@ const toolGroups: { label: string; items: { id: Tool; name: string; key: string;
     { id: "points", name: "Edit points", key: "P", glyph: "✣" }
   ]},
   { label: "CREATE", items: [
-    { id: "draw", name: "Draw", key: "B", glyph: "✎" },
+    { id: "draw", name: "Pencil", key: "B", glyph: "✎" },
+    { id: "line", name: "Line", key: "L", glyph: "╱" },
+    { id: "rect", name: "Rectangle", key: "U", glyph: "□" },
+    { id: "ellipse", name: "Ellipse", key: "O", glyph: "◯" },
     { id: "bone", name: "Bone", key: "A", glyph: "⌁" },
     { id: "hand", name: "Pan", key: "H", glyph: "✋" }
   ]}
@@ -140,7 +144,7 @@ export default function App() {
     const markNode=target.closest("[data-mark-id]");
     const markId=markNode?.getAttribute("data-mark-id");
     const point=pointFromEvent(event);
-    if (tool==="draw") {
+    if (tool==="draw" || tool==="rect" || tool==="ellipse" || tool==="line") {
       event.preventDefault(); event.currentTarget.setPointerCapture(event.pointerId);
       setSelectedId(null); setDraftPoints([point]); return;
     }
@@ -153,8 +157,12 @@ export default function App() {
   const onPointerMove = (event: ReactPointerEvent<SVGSVGElement>) => {
     const point=pointFromEvent(event);
     if (draftPoints.length) {
-      const last=draftPoints[draftPoints.length-1];
-      if(Math.hypot(point.x-last.x,point.y-last.y)>3) setDraftPoints(prev=>[...prev,point]);
+      if (tool === "draw") {
+        const last=draftPoints[draftPoints.length-1];
+        if(Math.hypot(point.x-last.x,point.y-last.y)>3) setDraftPoints(prev=>[...prev,point]);
+      } else if (tool === "rect" || tool === "ellipse" || tool === "line") {
+        setDraftPoints([draftPoints[0], point]);
+      }
     }
     if(pointDrag){
       setArtwork(items=>items.map(item=>{ if(item.id!==pointDrag.id)return item; const pose=evaluateTranslation(item.keyframes,frame); const localPoint={x:point.x-pose.x,y:point.y-pose.y}; return {...item,points:item.points.map((p,i)=>i===pointDrag.index?localPoint:p)}; }));
@@ -168,8 +176,12 @@ export default function App() {
   };
   const onPointerUp = () => {
     if(draftPoints.length){
-      const points=draftPoints.length>1?draftPoints:[{x:draftPoints[0].x-1,y:draftPoints[0].y-1},{x:draftPoints[0].x+1,y:draftPoints[0].y+1}];
-      const item:ArtworkPath={id:crypto.randomUUID(),name:`Stroke ${artwork.length+1}`,points,stroke:"#a9f16c",strokeWidth:8,keyframes:{1:{x:0,y:0}}};
+      const start = draftPoints[0];
+      const points = tool === "rect" || tool === "ellipse" || tool === "line"
+        ? createShapePoints(tool, start, draftPoints[draftPoints.length - 1])
+        : draftPoints.length > 1 ? draftPoints : [{x:start.x-1,y:start.y-1},{x:start.x+1,y:start.y+1}];
+      const label = tool === "rect" ? "Rectangle" : tool === "ellipse" ? "Ellipse" : tool === "line" ? "Line" : "Stroke";
+      const item:ArtworkPath={id:crypto.randomUUID(),name:`${label} ${artwork.length+1}`,points,stroke:"#a9f16c",strokeWidth:8,keyframes:{1:{x:0,y:0}}};
       pushArtwork([...artwork,item]); setSelectedId(item.id); setDraftPoints([]);
     }
     setDrag(null); setPointDrag(null);
@@ -185,7 +197,7 @@ export default function App() {
     if(event.key==="Delete"||event.key==="Backspace"){event.preventDefault();deleteSelected();}
     if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==="z"){event.preventDefault();event.shiftKey?redo():undo();}
     if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==="y"){event.preventDefault();redo();}
-    const keys:Record<string,Tool>={v:"select",m:"move",r:"rotate",b:"draw",a:"bone",h:"hand",p:"points"};
+    const keys:Record<string,Tool>={v:"select",m:"move",r:"rotate",b:"draw",u:"rect",o:"ellipse",l:"line",a:"bone",h:"hand",p:"points"};
     if(keys[event.key.toLowerCase()])setTool(keys[event.key.toLowerCase()]);
   };
   const toggleKeyframe = () => {
@@ -237,7 +249,7 @@ export default function App() {
             <div className="stage-grid" />
             <div className="stage-safe" />
             <svg ref={svgRef} className="character-art" viewBox="0 0 1920 1080" role="img" aria-label="Character and vector artwork canvas"
-              style={{transform:`scale(${zoom/100})`,touchAction:"none",cursor:tool==="draw"?"crosshair":tool==="hand"?"grab":tool==="points"?"crosshair":"default"}}
+              style={{transform:`scale(${zoom/100})`,touchAction:"none",cursor:tool==="draw"||tool==="rect"||tool==="ellipse"||tool==="line"?"crosshair":tool==="hand"?"grab":tool==="points"?"crosshair":"default"}}
               onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}>
               <g stroke="#252832" strokeWidth="10" strokeLinejoin="round" strokeLinecap="round">
                 <path d="M840 550 Q780 585 770 740 L800 778 L855 665 L900 600Z" fill="#e4b18c"/>
