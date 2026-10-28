@@ -2,7 +2,17 @@
 
 A new Windows-first, vector-first 2D character animation editor inspired by the workflow of Moho.
 
-> **Early development:** this repository now contains an initial Electron + React + TypeScript scaffold. The current UI is a workspace prototype, not a finished animation editor. Drawing, rigging, animation evaluation, save/open, and export are planned features, not yet complete.
+> **Early development:** the repository contains an Electron + React + TypeScript scaffold and the first interactive editor UI milestone. The visible character, layers, and rig overlay are sample UI content. This is not yet a finished animation editor; native drawing paths, real rigging, animation evaluation, save/open, and export are still planned.
+
+## Current UI prototype
+
+- Dark editor shell with Draw, Rig, Animate, Assets, and Export workspaces.
+- Central 16:9 artboard with a sample character illustration.
+- Tool rail with Select, Pen, Shape, Bone, and Hand tools.
+- Click the canvas with Pen or Shape selected to add prototype marks.
+- Rig workspace displays a sample skeleton overlay and selected-bone properties.
+- Layers, Style, timeline scrubbing, frame stepping, zoom controls, and a placeholder export panel.
+- Responsive panel sizing and keyboard shortcut labels.
 
 ## Goals
 
@@ -32,11 +42,12 @@ npm test
 npm run build
 ```
 
-These commands are provided by the scaffold but have not yet been verified in a local runtime for this initial commit.
+The GitHub API was used to author this UI update; the commands above have **not** been run in a local checkout for this update. Do not treat the UI prototype as build-verified until these commands and a GUI launch are tested.
 
 ## Project docs
 
 - [Development plan](DEVELOPMENT_PLAN.md)
+- [Visual design reference](DESIGN_REFERENCE.md)
 - [Local AI collaboration prompt](LOCAL_AI_PROMPT.md)
 
 ## Architecture
