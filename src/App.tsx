@@ -129,7 +129,7 @@ export default function App() {
     const next=clone(artwork),item=next.find(p=>p.id===selectedId);
     if(!item)return;
     if(item.keyframes[frame] && Object.keys(item.keyframes).length>1) delete item.keyframes[frame];
-    else item.keyframes[frame]=poseAt(item,frame);
+    else item.keyframes[frame]=evaluateTranslation(item.keyframes,frame);
     pushArtwork(next);
   };
   useEffect(()=>{
@@ -190,7 +190,7 @@ export default function App() {
                 <path d="M930 480 L960 515 L990 480" fill="#f0eef8" strokeWidth="7"/>
               </g>
               {showBones && workspace === "Build" && <g stroke="#a9f16c" strokeWidth="7" fill="#202229" strokeLinecap="round" pointerEvents="none"><path d="M960 470 L960 600 L960 770 L910 920 M960 770 L1010 920 M960 600 L850 640 M960 600 L1070 640" fill="none"/>{[[960,470],[960,600],[960,770],[910,920],[1010,920],[850,640],[1070,640]].map(([x,y],i)=><circle key={i} cx={x} cy={y} r="13" />)}</g>}
-              {artwork.map(item=>{const pose=poseAt(item,frame),bounds=pathBounds(item.points);return <g key={item.id} data-mark-id={item.id} transform={`translate(${pose.x} ${pose.y})`} style={{cursor:tool==="select"||tool==="move"?"move":"inherit"}}><polyline points={item.points.map(p=>`${p.x},${p.y}`).join(" ")} fill="none" stroke={item.stroke} strokeWidth={item.strokeWidth} strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" /><polyline points={item.points.map(p=>`${p.x},${p.y}`).join(" ")} fill="none" stroke="transparent" strokeWidth="28" vectorEffect="non-scaling-stroke" />{selectedId===item.id&&<g pointerEvents="none"><rect x={bounds.x-12} y={bounds.y-12} width={bounds.width+24} height={bounds.height+24} fill="none" stroke="#a9f16c" strokeWidth="3" strokeDasharray="10 8"/><circle cx={bounds.x+bounds.width+12} cy={bounds.y+bounds.height+12} r="9" fill="#a9f16c" stroke="#1d1f26" strokeWidth="3"/></g>}</g>;})}
+              {artwork.map(item=>{const pose=evaluateTranslation(item.keyframes,frame),bounds=pathBounds(item.points);return <g key={item.id} data-mark-id={item.id} transform={`translate(${pose.x} ${pose.y})`} style={{cursor:tool==="select"||tool==="move"?"move":"inherit"}}><polyline points={item.points.map(p=>`${p.x},${p.y}`).join(" ")} fill="none" stroke={item.stroke} strokeWidth={item.strokeWidth} strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" /><polyline points={item.points.map(p=>`${p.x},${p.y}`).join(" ")} fill="none" stroke="transparent" strokeWidth="28" vectorEffect="non-scaling-stroke" />{selectedId===item.id&&<g pointerEvents="none"><rect x={bounds.x-12} y={bounds.y-12} width={bounds.width+24} height={bounds.height+24} fill="none" stroke="#a9f16c" strokeWidth="3" strokeDasharray="10 8"/><circle cx={bounds.x+bounds.width+12} cy={bounds.y+bounds.height+12} r="9" fill="#a9f16c" stroke="#1d1f26" strokeWidth="3"/></g>}</g>;})}
               {draftPoints.length>0&&<polyline points={draftPoints.map(p=>`${p.x},${p.y}`).join(" ")} fill="none" stroke="#a9f16c" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" pointerEvents="none" />}
             </svg>
             <div className="artboard-label">ARTBOARD 01 <span>1920 × 1080</span></div><div className="canvas-coordinates">{selected?selected.name:"X 960 · Y 540"}</div>
