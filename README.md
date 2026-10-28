@@ -9,9 +9,9 @@ A new Windows-first, vector-first 2D character animation editor inspired by the 
 - Dark editor shell with Draw, Rig, Animate, Assets, and Export workspaces.
 - Central 16:9 artboard with a sample character illustration.
 - Tool rail with Select, Pen, Shape, Bone, and Hand tools.
-- Click the canvas with Pen or Shape selected to add prototype marks.
-- Rig workspace displays a sample skeleton overlay and selected-bone properties.
-- Layers, Style, timeline scrubbing, frame stepping, zoom controls, and a placeholder export panel.
+- Drag on the canvas with Draw selected to create editable vector strokes; select and drag strokes to reposition them.
+- Rig workspace displays a sample skeleton overlay and basic visibility control.
+- Layers, selection inspector, timeline scrubbing, frame stepping, playback, keyframe toggling, and timeline zoom controls.
 - Responsive panel sizing and keyboard shortcut labels.
 
 ## Goals
@@ -42,7 +42,7 @@ npm test
 npm run build
 ```
 
-The GitHub API was used to author this UI update; the commands above have **not** been run in a local checkout for this update. Do not treat the UI prototype as build-verified until these commands and a GUI launch are tested.
+The canvas and timeline update was authored through the GitHub API. The commands above have **not** been run in a local checkout for this update. Do not treat the branch as build-verified until these commands and a GUI launch are tested. The current Save button is a session-only indicator; project file persistence and export are not implemented.
 
 ## Project docs
 
