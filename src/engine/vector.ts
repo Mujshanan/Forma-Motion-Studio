@@ -8,6 +8,52 @@ export type BezierCommand =
   | { type: "C"; x1: number; y1: number; x2: number; y2: number; x: number; y: number }
   | { type: "Z" };
 
+
+export type BezierEditHandle = "anchor" | "control1" | "control2";
+
+/** Move an anchor or cubic handle without regenerating the path from sampled points. */
+export function moveBezierHandle(
+  commands: BezierCommand[],
+  commandIndex: number,
+  handle: BezierEditHandle,
+  point: VectorPoint
+): BezierCommand[] {
+  if (!Number.isInteger(commandIndex) || commandIndex < 0 || commandIndex >= commands.length ||
+      !Number.isFinite(point.x) || !Number.isFinite(point.y)) return commands;
+  const target = commands[commandIndex];
+  if (!target || target.type === "Z") return commands;
+  const next = commands.map(command => ({ ...command })) as BezierCommand[];
+
+  if (handle === "control1" || handle === "control2") {
+    if (target.type !== "C") return commands;
+    next[commandIndex] = handle === "control1"
+      ? { ...target, x1: point.x, y1: point.y }
+      : { ...target, x2: point.x, y2: point.y };
+    return next;
+  }
+
+  const dx = point.x - target.x;
+  const dy = point.y - target.y;
+  const moved = next[commandIndex];
+  if (moved.type === "M" || moved.type === "L") {
+    next[commandIndex] = { ...moved, x: point.x, y: point.y };
+  } else {
+    next[commandIndex] = { ...moved, x: point.x, y: point.y, x2: moved.x2 + dx, y2: moved.y2 + dy };
+  }
+
+  // The outgoing handle of the next cubic is attached to this anchor.
+  for (let i = commandIndex + 1; i < next.length; i += 1) {
+    const command = next[i];
+    if (command.type === "Z") continue;
+    if (command.type === "C") {
+      next[i] = { ...command, x1: command.x1 + dx, y1: command.y1 + dy };
+      break;
+    }
+    if (command.type === "M" || command.type === "L") break;
+  }
+  return next;
+}
+
 const isFinitePoint = (point: VectorPoint) => Number.isFinite(point.x) && Number.isFinite(point.y);
 
 /**
