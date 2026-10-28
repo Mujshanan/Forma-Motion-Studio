@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createShapePoints, exportSvg } from "./vector";
+import { createShapePoints, exportSvg, moveBezierHandle } from "./vector";
 
 describe("createShapePoints", () => {
   it("creates a line from the exact endpoints", () => {
@@ -74,5 +74,32 @@ describe("cubic Bézier geometry", () => {
     }]);
     expect(svg).toContain('<path d="M 0 0 C 2 0 8 10 10 10"');
     expect(svg).not.toContain("<polyline");
+  });
+});
+
+describe("Bézier handle editing", () => {
+  const path = [
+    { type: "M" as const, x: 0, y: 0 },
+    { type: "C" as const, x1: 10, y1: 0, x2: 20, y2: 10, x: 30, y: 10 },
+    { type: "C" as const, x1: 40, y1: 10, x2: 50, y2: 20, x: 60, y: 20 }
+  ];
+
+  it("moves a control handle without changing anchors or the other handles", () => {
+    expect(moveBezierHandle(path, 1, "control1", { x: 12, y: 4 })).toEqual([
+      path[0], { ...path[1], x1: 12, y1: 4 }, path[2]
+    ]);
+  });
+
+  it("moves an anchor and its adjacent handles together", () => {
+    expect(moveBezierHandle(path, 1, "anchor", { x: 35, y: 15 })).toEqual([
+      path[0],
+      { ...path[1], x2: 25, y2: 15, x: 35, y: 15 },
+      { ...path[2], x1: 45, y1: 15 }
+    ]);
+  });
+
+  it("ignores invalid handle edits", () => {
+    expect(moveBezierHandle(path, 99, "anchor", { x: 1, y: 1 })).toBe(path);
+    expect(moveBezierHandle(path, 1, "control2", { x: Number.NaN, y: 1 })).toBe(path);
   });
 });
