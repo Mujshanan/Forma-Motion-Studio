@@ -48,3 +48,31 @@ describe("exportSvg", () => {
     expect(svg).toContain('stroke-width="1"');
   });
 });
+
+describe("cubic Bézier geometry", () => {
+  it("creates a cubic path from sampled pointer points", async () => {
+    const { createSmoothBezier, bezierPathToSvgD } = await import("./vector");
+    const commands = createSmoothBezier([{ x: 0, y: 0 }, { x: 10, y: 20 }, { x: 20, y: 0 }]);
+    expect(commands[0]).toEqual({ type: "M", x: 0, y: 0 });
+    expect(commands.filter(command => command.type === "C")).toHaveLength(2);
+    expect(bezierPathToSvgD(commands)).toContain("C ");
+  });
+
+  it("filters invalid samples and safely handles empty or single-point input", async () => {
+    const { createSmoothBezier } = await import("./vector");
+    expect(createSmoothBezier([])).toEqual([]);
+    expect(createSmoothBezier([{ x: 2, y: 3 }])).toEqual([{ type: "M", x: 2, y: 3 }]);
+    expect(createSmoothBezier([{ x: 0, y: 0 }, { x: Number.NaN, y: 1 }, { x: 5, y: 5 }]))
+      .toHaveLength(2);
+  });
+
+  it("exports cubic paths as SVG path elements rather than flattened polylines", () => {
+    const svg = exportSvg([{
+      points: [{ x: 0, y: 0 }, { x: 10, y: 10 }],
+      commands: [{ type: "M", x: 0, y: 0 }, { type: "C", x1: 2, y1: 0, x2: 8, y2: 10, x: 10, y: 10 }],
+      stroke: "#000", strokeWidth: 2
+    }]);
+    expect(svg).toContain('<path d="M 0 0 C 2 0 8 10 10 10"');
+    expect(svg).not.toContain("<polyline");
+  });
+});
