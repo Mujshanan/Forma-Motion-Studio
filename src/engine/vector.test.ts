@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createShapePoints } from "./vector";
+import { createShapePoints, exportSvg } from "./vector";
 
 describe("createShapePoints", () => {
   it("creates a line from the exact endpoints", () => {
@@ -29,5 +29,22 @@ describe("createShapePoints", () => {
       expect(createShapePoints(tool, { x: 4, y: 4 }, { x: 4, y: 4 })
         .every(point => Number.isFinite(point.x) && Number.isFinite(point.y))).toBe(true);
     }
+  });
+});
+
+describe("exportSvg", () => {
+  it("exports standalone SVG with paths and stroke styling", () => {
+    const svg = exportSvg([{ points: [{ x: 1, y: 2 }, { x: 30, y: 40 }], stroke: "#a9f16c", strokeWidth: 4 }]);
+    expect(svg).toContain('<svg xmlns="http://www.w3.org/2000/svg"');
+    expect(svg).toContain('points="1,2 30,40"');
+    expect(svg).toContain('stroke="#a9f16c" stroke-width="4"');
+    expect(svg).toContain('</svg>');
+  });
+
+  it("escapes XML attributes and falls back for invalid dimensions", () => {
+    const svg = exportSvg([{ points: [{ x: 1, y: 2 }], stroke: '" onload="alert(1)', strokeWidth: 0 }], Number.NaN, -1);
+    expect(svg).toContain('width="1920" height="1080"');
+    expect(svg).toContain('&quot; onload=&quot;alert(1)');
+    expect(svg).toContain('stroke-width="1"');
   });
 });
