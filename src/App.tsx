@@ -1,4 +1,5 @@
 import { useState } from "react";
+import type { MouseEvent } from "react";
 
 type Tool = "select" | "draw" | "bone" | "hand" | "shape";
 type Workspace = "Draw" | "Rig" | "Animate" | "Assets" | "Export";
@@ -33,7 +34,7 @@ export default function App() {
     else setActivePanel("Style");
   };
 
-  const handleCanvasClick = (event: React.MouseEvent<SVGSVGElement>) => {
+  const handleCanvasClick = (event: MouseEvent<SVGSVGElement>) => {
     if (tool !== "draw" && tool !== "shape") return;
     const rect = event.currentTarget.getBoundingClientRect();
     const x = ((event.clientX - rect.left) / rect.width) * 1920;
