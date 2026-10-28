@@ -139,7 +139,6 @@ export default function App() {
   },[playing]);
   useEffect(()=>{if(frame>DURATION)setFrame(DURATION);},[frame]);
   const currentPose=selected?evaluateTranslation(selected.keyframes,frame):{x:0,y:0};
-  const hasKeyframe=Boolean(selected?.keyframes[frame]);
 
   return <main className="studio-shell" tabIndex={0} onKeyDown={onKeyDown}>
     <header className="studio-topbar">
