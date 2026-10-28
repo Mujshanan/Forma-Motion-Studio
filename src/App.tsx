@@ -307,7 +307,7 @@ export default function App() {
                 {item.pathCommands.map((command,index)=>{
                   if(command.type!=="C") return null;
                   const previous=item.pathCommands!.slice(0,index).reverse().find(candidate=>candidate.type==="M"||candidate.type==="L"||candidate.type==="C");
-                  if(!previous||previous.type==="Z") return null;
+                  if(!previous) return null;
                   return <g key={"handles-"+index} pointerEvents="none" stroke="#8d82dc" strokeWidth="3" strokeDasharray="5 5" fill="none"><line x1={previous.x} y1={previous.y} x2={command.x1} y2={command.y1}/><line x1={command.x} y1={command.y} x2={command.x2} y2={command.y2}/></g>;
                 })}
                 {item.pathCommands.map((command,index)=>command.type==="C"?<g key={"controls-"+index}>
