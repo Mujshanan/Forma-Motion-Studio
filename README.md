@@ -46,6 +46,9 @@ The project persistence and point-editing update was authored through the GitHub
 
 ## Project docs
 
+- `src/engine/project.ts` — versioned JSON project serialization and validation
+- `src/engine/project.test.ts` — project round-trip and validation tests
+- `src/engine/timeline.ts` — translation keyframe evaluation
 - [Development plan](DEVELOPMENT_PLAN.md)
 - [Visual design reference](DESIGN_REFERENCE.md)
 - [Local AI collaboration prompt](LOCAL_AI_PROMPT.md)
