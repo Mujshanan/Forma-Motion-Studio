@@ -81,7 +81,21 @@ export default function App() {
     }
   }, [artwork, frame]);
 
-  const exportSvgFile = useCallback(() => {\n    const paths = artwork.map(item => {\n      const pose = evaluateTranslation(item.keyframes, frame);\n      return { points: item.points.map(point => ({ x: point.x + pose.x, y: point.y + pose.y })), stroke: item.stroke, strokeWidth: item.strokeWidth };\n    });\n    const blob = new Blob([exportSvg(paths)], { type: "image/svg+xml;charset=utf-8" });\n    const url = URL.createObjectURL(blob);\n    const anchor = document.createElement("a");\n    anchor.href = url; anchor.download = "forma-motion-artwork.svg";\n    document.body.appendChild(anchor); anchor.click(); anchor.remove();\n    URL.revokeObjectURL(url);\n    setPanel("Properties");\n  }, [artwork, frame]);\n\n  const saveProjectFile = useCallback(() => {
+  const exportSvgFile = useCallback(() => {
+    const paths = artwork.map(item => {
+      const pose = evaluateTranslation(item.keyframes, frame);
+      return { points: item.points.map(point => ({ x: point.x + pose.x, y: point.y + pose.y })), stroke: item.stroke, strokeWidth: item.strokeWidth };
+    });
+    const blob = new Blob([exportSvg(paths)], { type: "image/svg+xml;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url; anchor.download = "forma-motion-artwork.svg";
+    document.body.appendChild(anchor); anchor.click(); anchor.remove();
+    URL.revokeObjectURL(url);
+    setPanel("Properties");
+  }, [artwork, frame]);
+
+  const saveProjectFile = useCallback(() => {
     try {
       const project = createProject(artwork, frame);
       const blob = new Blob([JSON.stringify(project, null, 2)], { type: "application/json" });
