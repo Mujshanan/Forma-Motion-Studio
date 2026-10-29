@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createShapePoints, exportSvg } from "./vector";
+import { createShapePoints, exportSvg, moveBezierHandle } from "./vector";
 
 describe("createShapePoints", () => {
   it("creates a line from the exact endpoints", () => {
@@ -46,5 +46,60 @@ describe("exportSvg", () => {
     expect(svg).toContain('width="1920" height="1080"');
     expect(svg).toContain('&quot; onload=&quot;alert(1)');
     expect(svg).toContain('stroke-width="1"');
+  });
+});
+
+describe("cubic Bézier geometry", () => {
+  it("creates a cubic path from sampled pointer points", async () => {
+    const { createSmoothBezier, bezierPathToSvgD } = await import("./vector");
+    const commands = createSmoothBezier([{ x: 0, y: 0 }, { x: 10, y: 20 }, { x: 20, y: 0 }]);
+    expect(commands[0]).toEqual({ type: "M", x: 0, y: 0 });
+    expect(commands.filter(command => command.type === "C")).toHaveLength(2);
+    expect(bezierPathToSvgD(commands)).toContain("C ");
+  });
+
+  it("filters invalid samples and safely handles empty or single-point input", async () => {
+    const { createSmoothBezier } = await import("./vector");
+    expect(createSmoothBezier([])).toEqual([]);
+    expect(createSmoothBezier([{ x: 2, y: 3 }])).toEqual([{ type: "M", x: 2, y: 3 }]);
+    expect(createSmoothBezier([{ x: 0, y: 0 }, { x: Number.NaN, y: 1 }, { x: 5, y: 5 }]))
+      .toHaveLength(2);
+  });
+
+  it("exports cubic paths as SVG path elements rather than flattened polylines", () => {
+    const svg = exportSvg([{
+      points: [{ x: 0, y: 0 }, { x: 10, y: 10 }],
+      commands: [{ type: "M", x: 0, y: 0 }, { type: "C", x1: 2, y1: 0, x2: 8, y2: 10, x: 10, y: 10 }],
+      stroke: "#000", strokeWidth: 2
+    }]);
+    expect(svg).toContain('<path d="M 0 0 C 2 0 8 10 10 10"');
+    expect(svg).not.toContain("<polyline");
+  });
+});
+
+describe("Bézier handle editing", () => {
+  const path = [
+    { type: "M" as const, x: 0, y: 0 },
+    { type: "C" as const, x1: 10, y1: 0, x2: 20, y2: 10, x: 30, y: 10 },
+    { type: "C" as const, x1: 40, y1: 10, x2: 50, y2: 20, x: 60, y: 20 }
+  ];
+
+  it("moves a control handle without changing anchors or the other handles", () => {
+    expect(moveBezierHandle(path, 1, "control1", { x: 12, y: 4 })).toEqual([
+      path[0], { ...path[1], x1: 12, y1: 4 }, path[2]
+    ]);
+  });
+
+  it("moves an anchor and its adjacent handles together", () => {
+    expect(moveBezierHandle(path, 1, "anchor", { x: 35, y: 15 })).toEqual([
+      path[0],
+      { ...path[1], x2: 25, y2: 15, x: 35, y: 15 },
+      { ...path[2], x1: 45, y1: 15 }
+    ]);
+  });
+
+  it("ignores invalid handle edits", () => {
+    expect(moveBezierHandle(path, 99, "anchor", { x: 1, y: 1 })).toBe(path);
+    expect(moveBezierHandle(path, 1, "control2", { x: Number.NaN, y: 1 })).toBe(path);
   });
 });
