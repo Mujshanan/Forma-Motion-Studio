@@ -37,7 +37,7 @@ const toolGroups: { label: string; items: { id: Tool; name: string; key: string;
     { id: "hand", name: "Pan", key: "H", glyph: "✋" }
   ]}
 ];
-const clone = (items: Snapshot): Snapshot => items.map(item => ({ ...item, points: item.points.map(p => ({...p})), keyframes: {...item.keyframes} }));
+const clone = (items: Snapshot): Snapshot => items.map(item => ({ ...item, points: item.points.map(p => ({ ...p })), pathCommands: item.pathCommands?.map(command => ({ ...command } as BezierCommand)), keyframes: { ...item.keyframes } }));
 function pathBounds(points: Point[]) {
   const xs=points.map(p=>p.x), ys=points.map(p=>p.y);
   return {x:Math.min(...xs),y:Math.min(...ys),width:Math.max(1,Math.max(...xs)-Math.min(...xs)),height:Math.max(1,Math.max(...ys)-Math.min(...ys))};
@@ -311,10 +311,10 @@ export default function App() {
                   return <g key={"handles-"+index} pointerEvents="none" stroke="#8d82dc" strokeWidth="3" strokeDasharray="5 5" fill="none"><line x1={previous.x} y1={previous.y} x2={command.x1} y2={command.y1}/><line x1={command.x} y1={command.y} x2={command.x2} y2={command.y2}/></g>;
                 })}
                 {item.pathCommands.map((command,index)=>command.type==="C"?<g key={"controls-"+index}>
-                  <circle data-bezier-command-index={index} data-bezier-handle="control1" cx={command.x1} cy={command.y1} r="9" fill="#8d82dc" stroke="#f0eef8" strokeWidth="3" style={{cursor:"grab"}} pointerEvents="all"/>
-                  <circle data-bezier-command-index={index} data-bezier-handle="control2" cx={command.x2} cy={command.y2} r="9" fill="#8d82dc" stroke="#f0eef8" strokeWidth="3" style={{cursor:"grab"}} pointerEvents="all"/>
+                  <circle data-bezier-command-index={index} data-bezier-handle="control1" cx={command.x1} cy={command.y1} r="9" fill="#8d82dc" stroke="#f0eef8" strokeWidth="3" style={{cursor:"grab"}} pointerEvents="all" role="button" aria-label={`Move first control handle ${index}`}><title>Drag first control handle</title></circle>
+                  <circle data-bezier-command-index={index} data-bezier-handle="control2" cx={command.x2} cy={command.y2} r="9" fill="#8d82dc" stroke="#f0eef8" strokeWidth="3" style={{cursor:"grab"}} pointerEvents="all" role="button" aria-label={`Move second control handle ${index}`}><title>Drag second control handle</title></circle>
                 </g>:null)}
-                {item.pathCommands.map((command,index)=>command.type==="M"||command.type==="L"||command.type==="C"?<circle key={"anchor-"+index} data-bezier-command-index={index} data-bezier-handle="anchor" cx={command.x} cy={command.y} r="10" fill="#f0eef8" stroke="#a9f16c" strokeWidth="4" style={{cursor:"grab"}} pointerEvents="all"/>:null)}
+                {item.pathCommands.map((command,index)=>command.type==="M"||command.type==="L"||command.type==="C"?<circle key={"anchor-"+index} data-bezier-command-index={index} data-bezier-handle="anchor" cx={command.x} cy={command.y} r="10" fill="#f0eef8" stroke="#a9f16c" strokeWidth="4" style={{cursor:"grab"}} pointerEvents="all" role="button" aria-label={`Move path anchor ${index}`}><title>Drag anchor; attached handles move with it</title></circle>:null)}
               </g>}
               {selectedId===item.id&&tool==="points"&&!item.pathCommands&&item.points.map((point,index)=><circle key={index} data-point-index={index} cx={point.x} cy={point.y} r="10" fill="#f0eef8" stroke="#a9f16c" strokeWidth="4" style={{cursor:"grab"}} pointerEvents="all" />)}</g>;})}
               {draftPoints.length>0&&<polyline points={draftPoints.map(p=>`${p.x},${p.y}`).join(" ")} fill="none" stroke="#a9f16c" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" pointerEvents="none" />}
