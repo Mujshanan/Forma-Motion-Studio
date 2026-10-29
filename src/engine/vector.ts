@@ -37,7 +37,7 @@ export function moveBezierHandle(
   const moved = next[commandIndex];
   if (moved.type === "M" || moved.type === "L") {
     next[commandIndex] = { ...moved, x: point.x, y: point.y };
-  } else {
+  } else if (moved.type === "C") {
     next[commandIndex] = { ...moved, x: point.x, y: point.y, x2: moved.x2 + dx, y2: moved.y2 + dy };
   }
 
