@@ -3,7 +3,7 @@ on:
   pull_request:
     branches: [main, feat/vector-shape-tools]
   push:
-    branches: [feat/vector-shape-tools]
+    branches: [main, feat/vector-shape-tools]
   workflow_dispatch:
 permissions:
   contents: read
