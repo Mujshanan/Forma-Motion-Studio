@@ -2,14 +2,16 @@
 
 A new Windows-first, vector-first 2D character animation editor inspired by the workflow of Moho.
 
-> **Early development:** the repository contains an Electron + React + TypeScript scaffold and the first interactive editor UI milestone. The visible character, layers, and rig overlay are sample UI content. This is not yet a finished animation editor; native drawing paths, real rigging, animation evaluation, save/open, and export are still planned.
+> **Early development:** this is an interactive prototype, not a finished animation editor. The visible character and rig overlay are sample UI content. Real rigging and rendered animation export remain planned.
 
 ## Current UI prototype
 
 - Dark editor shell with Draw, Rig, Animate, Assets, and Export workspaces.
 - Central 16:9 artboard with a sample character illustration.
 - Tool rail with Select, Pen, Shape, Bone, and Hand tools.
-- Drag on the canvas with Draw selected to create editable vector strokes; select and drag strokes to reposition them.
+- Draw vector strokes, select and reposition them, and use Edit points (P) to reshape individual stroke points.
+- Auto-restores the latest working document in local browser storage; Open imports a project JSON file and Save downloads a portable project JSON file.
+- Project files validate their format, coordinates, and keyframe ranges before opening.
 - Rig workspace displays a sample skeleton overlay and basic visibility control.
 - Layers, selection inspector, timeline scrubbing, frame stepping, playback, keyframe toggling, and timeline zoom controls.
 - Responsive panel sizing and keyboard shortcut labels.
@@ -42,10 +44,13 @@ npm test
 npm run build
 ```
 
-The canvas and timeline update was authored through the GitHub API. The commands above have **not** been run in a local checkout for this update. Do not treat the branch as build-verified until these commands and a GUI launch are tested. The current Save button is a session-only indicator; project file persistence and export are not implemented.
+The project persistence and point-editing update was authored through the GitHub API. The commands above have **not** been run in a local checkout for this update. Do not treat the branch as build-verified until these commands and a GUI launch are tested. Exporting a rendered animation and native rigging are not implemented.
 
 ## Project docs
 
+- `src/engine/project.ts` — versioned JSON project serialization and validation
+- `src/engine/project.test.ts` — project round-trip and validation tests
+- `src/engine/timeline.ts` — translation keyframe evaluation
 - [Development plan](DEVELOPMENT_PLAN.md)
 - [Visual design reference](DESIGN_REFERENCE.md)
 - [Local AI collaboration prompt](LOCAL_AI_PROMPT.md)
