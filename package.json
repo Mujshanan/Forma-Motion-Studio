@@ -25,5 +25,23 @@
     "vite": "^6.3.5",
     "vitest": "^3.2.4",
     "wait-on": "^8.0.4"
+  },
+  "build": {
+    "appId": "com.mujshanan.formamotionstudio",
+    "productName": "Forma Motion Studio UI Preview",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        "portable"
+      ],
+      "artifactName": "Forma-Motion-Studio-UI-Preview-${version}-${arch}.${ext}"
+    }
   }
 }
