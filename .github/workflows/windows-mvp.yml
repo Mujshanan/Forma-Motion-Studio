@@ -10,7 +10,7 @@ permissions:
 jobs:
   build-windows:
     runs-on: windows-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
     steps:
       - name: Check out source
         uses: actions/checkout@v7
@@ -18,18 +18,44 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version: 24
+          cache: npm
       - name: Install dependencies
         run: npm install
       - name: Run tests
         run: npm test
       - name: Build renderer
         run: npm run build
+      - name: Verify renderer output
+        shell: pwsh
+        run: |
+          if (!(Test-Path "dist/index.html")) { throw "Vite renderer entry is missing." }
+          $html = Get-Content "dist/index.html" -Raw
+          if ($html -notmatch './assets/') { throw "Renderer asset URLs are not relative." }
+          if (!(Get-ChildItem "dist/assets" -File)) { throw "Renderer assets are missing." }
       - name: Package portable Windows MVP
         run: npx --yes electron-builder@26.0.12 --win portable --x64 --publish never
+      - name: Verify packaged application files
+        shell: pwsh
+        run: |
+          if (!(Test-Path "release/win-unpacked/resources/app.asar")) { throw "Packaged app.asar is missing." }
+          npx --yes @electron/asar list release/win-unpacked/resources/app.asar | Out-File packaged-files.txt
+          $files = Get-Content packaged-files.txt -Raw
+          if ($files -notmatch "dist/index.html") { throw "Renderer index.html was not included in app.asar." }
+          if ($files -notmatch "electron/main.cjs") { throw "Electron main process was not included in app.asar." }
+      - name: Smoke test packaged Electron startup
+        shell: pwsh
+        run: |
+          $exe = Resolve-Path "release/win-unpacked/forma-motion-studio.exe"
+          $env:ELECTRON_ENABLE_LOGGING = "1"
+          $process = Start-Process -FilePath $exe -ArgumentList "--disable-gpu" -PassThru
+          Start-Sleep -Seconds 10
+          $running = Get-Process -Id $process.Id -ErrorAction SilentlyContinue
+          if (!$running) { throw "Packaged Electron process exited during startup." }
+          Stop-Process -Id $process.Id -Force
       - name: Upload Windows MVP
         uses: actions/upload-artifact@v7
         with:
           name: Forma-Motion-Studio-Windows-MVP
-          path: dist/*.exe
+          path: release/*.exe
           if-no-files-found: error
           retention-days: 14
