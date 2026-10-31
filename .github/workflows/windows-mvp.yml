@@ -1,9 +1,9 @@
-name: Windows MVP
+name: Windows UI-only diagnostic
 on:
   pull_request:
-    branches: [main, feat/vector-shape-tools]
+    branches: [main]
   push:
-    branches: [main, feat/vector-shape-tools]
+    branches: [diagnostic/ui-only-shell]
   workflow_dispatch:
 permissions:
   contents: read
@@ -24,12 +24,37 @@ jobs:
         run: npm test
       - name: Build renderer
         run: npm run build
-      - name: Package portable Windows MVP
+      - name: Verify renderer output
+        shell: pwsh
+        run: |
+          if (!(Test-Path "dist/index.html")) { throw "Vite did not create dist/index.html" }
+          $html = Get-Content "dist/index.html" -Raw
+          if ($html -notmatch "./assets/") { throw "Renderer asset paths are not relative" }
+          if (!(Get-ChildItem "dist/assets" -File -ErrorAction SilentlyContinue)) { throw "Renderer assets are missing" }
+      - name: Package portable Windows UI preview
         run: npx --yes electron-builder@26.0.12 --win portable --x64 --publish never
-      - name: Upload Windows MVP
+      - name: Verify packaged application contents
+        shell: pwsh
+        run: |
+          $asar = "release/win-unpacked/resources/app.asar"
+          if (!(Test-Path $asar)) { throw "Packaged app.asar is missing" }
+          npx --yes @electron/asar list $asar | Out-File packaged-files.txt
+          $files = Get-Content packaged-files.txt -Raw
+          if ($files -notmatch "dist/index.html") { throw "Packaged renderer index is missing" }
+          if ($files -notmatch "electron/main.cjs") { throw "Electron main process is missing" }
+      - name: Smoke test packaged application
+        shell: pwsh
+        run: |
+          $exe = (Resolve-Path "release/win-unpacked/forma-motion-studio.exe").Path
+          $process = Start-Process -FilePath $exe -ArgumentList "--no-sandbox", "--disable-gpu", "--enable-logging" -PassThru
+          Start-Sleep -Seconds 12
+          $process.Refresh()
+          if ($process.HasExited) { throw "Electron exited during startup smoke test (exit code $($process.ExitCode))" }
+          Stop-Process -Id $process.Id -Force
+      - name: Upload Windows UI preview
         uses: actions/upload-artifact@v7
         with:
-          name: Forma-Motion-Studio-Windows-MVP
-          path: dist/*.exe
+          name: Forma-Motion-Studio-UI-Preview
+          path: release/*.exe
           if-no-files-found: error
           retention-days: 14
